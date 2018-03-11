@@ -53,5 +53,66 @@ class SafeFormsSpec extends WordSpec with MustMatchers {
         FormError("age", Seq("error.min.strict"), Seq("0"))
       )
     }
+    "generate a mapping with a sealed trait" in {
+      sealed trait Pet {
+        def name: String
+      }
+      case class Dog(name: String) extends Pet
+      case class Cat(name: String) extends Pet
+      case class Parrot(name: String) extends Pet
+      case class Hamster(name: String) extends Pet
+
+      case class Person(firstName: String, lastName: String, age: Int, pet: Option[Pet] = None)
+
+      val formWithNone =
+        newForm[Person].bind(Map("firstName" -> "Bill", "lastName" -> "Smith", "age" -> "32"))
+      formWithNone.errors mustBe empty
+      formWithNone.value mustBe Some(Person("Bill", "Smith", 32))
+
+      val formWithSomeCat =
+        newForm[Person].bind(
+          Map(
+            "firstName" -> "Bill",
+            "lastName" -> "Smith",
+            "age" -> "42",
+            "pet.type" -> "Cat",
+            "pet.value.name" -> "Oliver"
+          )
+        )
+      formWithSomeCat.errors mustBe empty
+      formWithSomeCat.value mustBe Some(Person("Bill", "Smith", 42, Some(Cat("Oliver"))))
+    }
+
+    "generate a mapping with a list" in {
+      sealed trait Pet {
+        def name: String
+      }
+      case class Dog(name: String) extends Pet
+      case class Cat(name: String) extends Pet
+      case class Parrot(name: String) extends Pet
+      case class Hamster(name: String) extends Pet
+
+      case class Person(firstName: String, lastName: String, age: Int, pets: List[Pet] = List.empty)
+
+      val formWithNone =
+        newForm[Person].bind(Map("firstName" -> "Bill", "lastName" -> "Smith", "age" -> "32"))
+      formWithNone.errors mustBe empty
+      formWithNone.value mustBe Some(Person("Bill", "Smith", 32))
+
+      val formWithPets =
+        newForm[Person].bind(
+          Map(
+            "firstName" -> "Bill",
+            "lastName" -> "Smith",
+            "age" -> "42",
+            "pets[0].type" -> "Cat",
+            "pets[0].value.name" -> "Oliver",
+            "pets[1].type" -> "Dog",
+            "pets[1].value.name" -> "Wilson"
+          )
+        )
+      formWithPets.errors mustBe empty
+      formWithPets.value mustBe Some(Person("Bill", "Smith", 42, List(Cat("Oliver"), Dog("Wilson"))))
+    }
   }
 }
