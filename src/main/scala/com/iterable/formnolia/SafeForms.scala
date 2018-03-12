@@ -113,8 +113,8 @@ private[formnolia] case class SealedTraitMapping[T](
   }
 
   override def unbind(value: T): Map[String, String] = {
-    Map(typeKey -> ctx.typeName.short) ++ ctx.dispatch(value) { st =>
-      st.typeclass.withPrefix(valueKey).unbind(st.cast(value))
+    ctx.dispatch(value) { st =>
+      Map(typeKey -> st.typeName.short) ++ st.typeclass.withPrefix(valueKey).unbind(st.cast(value))
     }
   }
 

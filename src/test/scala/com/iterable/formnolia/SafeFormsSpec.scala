@@ -32,9 +32,15 @@ class SafeFormsSpec extends WordSpec with MustMatchers {
   "Safe forms" must {
     "generate a mapping for a case class" in {
       case class Person(firstName: String, lastName: String, age: Int)
-      val personForm = newForm[Person].bind(Map("firstName" -> "Bill", "lastName" -> "Smith", "age" -> "32"))
+
+      val person = Person("Bill", "Smith", 32)
+      val personData = Map("firstName" -> "Bill", "lastName" -> "Smith", "age" -> "32")
+
+      val personForm = newForm[Person].bind(personData)
       personForm.errors mustBe empty
-      personForm.value mustBe Some(Person("Bill", "Smith", 32))
+      personForm.value mustBe Some(person)
+
+      personForm.fill(person).data mustBe personData
     }
     "generate a mapping for a case class using refined types" in {
       case class Person(
@@ -42,11 +48,15 @@ class SafeFormsSpec extends WordSpec with MustMatchers {
         lastName: String Refined NonEmpty,
         age: Int Refined Positive
       )
-      val personForm = newForm[Person].bind(Map("firstName" -> "Bill", "lastName" -> "Smith", "age" -> "32"))
+
+      val personData = Map("firstName" -> "Bill", "lastName" -> "Smith", "age" -> "32")
+      val person = Person(refineMV[NonEmpty]("Bill"), refineMV[NonEmpty]("Smith"), refineMV[Positive](32))
+
+      val personForm = newForm[Person].bind(personData)
       personForm.errors mustBe empty
-      personForm.value mustBe Some(
-        Person(refineMV[NonEmpty]("Bill"), refineMV[NonEmpty]("Smith"), refineMV[Positive](32))
-      )
+      personForm.value mustBe Some(person)
+      newForm[Person].fill(person).data mustBe personData
+
       val personFormWithErrors = personForm.bind(Map("firstName" -> "Bill", "lastName" -> "", "age" -> "0"))
       personFormWithErrors.errors mustBe Seq(
         FormError("lastName", Seq("error.required")),
@@ -64,22 +74,27 @@ class SafeFormsSpec extends WordSpec with MustMatchers {
       implicit val roleMapping = genMapping[Role]
       assert(roleMapping != null)
 
-      val formWithNone =
-        newForm[Person].bind(Map("firstName" -> "Bobby", "lastName" -> "Tables", "age" -> "17"))
+      val nonePerson = Person("Bobby", "Tables", 17)
+      val nonePersonData = Map("firstName" -> "Bobby", "lastName" -> "Tables", "age" -> "17")
+      val formWithNone = newForm[Person].bind(nonePersonData)
       formWithNone.errors mustBe empty
-      formWithNone.value mustBe Some(Person("Bobby", "Tables", 17))
+      formWithNone.value mustBe Some(nonePerson)
+      formWithNone.fill(nonePerson).data mustBe nonePersonData
 
-      val formWithUser =
-        newForm[Person].bind(Map("firstName" -> "Bill", "lastName" -> "Smith", "age" -> "42", "role.type" -> "User"))
+      val userPerson = Person("Bill", "Smith", 42, Some(User))
+      val userPersonData = Map("firstName" -> "Bill", "lastName" -> "Smith", "age" -> "42", "role.type" -> "User")
+      val formWithUser = newForm[Person].bind(userPersonData)
       formWithUser.errors mustBe empty
-      formWithUser.value mustBe Some(Person("Bill", "Smith", 42, Some(User)))
+      formWithUser.value mustBe Some(userPerson)
+      formWithUser.fill(userPerson).data mustBe userPersonData
 
-      val formWithAdmin =
-        newForm[Person].bind(
-          Map("firstName" -> "Alice", "lastName" -> "Rodriguez", "age" -> "39", "role.type" -> "Admin")
-        )
+      val adminPerson = Person("Alice", "Rodriguez", 39, Some(Admin))
+      val adminPersonData =
+        Map("firstName" -> "Alice", "lastName" -> "Rodriguez", "age" -> "39", "role.type" -> "Admin")
+      val formWithAdmin = newForm[Person].bind(adminPersonData)
       formWithAdmin.errors mustBe empty
-      formWithAdmin.value mustBe Some(Person("Alice", "Rodriguez", 39, Some(Admin)))
+      formWithAdmin.value mustBe Some(adminPerson)
+      formWithAdmin.fill(adminPerson).data mustBe adminPersonData
     }
 
     "generate a mapping with a list" in {
@@ -97,25 +112,21 @@ class SafeFormsSpec extends WordSpec with MustMatchers {
 
       case class Person(firstName: String, lastName: String, age: Int, pets: List[Pet] = List.empty)
 
-      val formWithNone =
-        newForm[Person].bind(Map("firstName" -> "Bill", "lastName" -> "Smith", "age" -> "32"))
-      formWithNone.errors mustBe empty
-      formWithNone.value mustBe Some(Person("Bill", "Smith", 32))
+      val value = Person("Bill", "Smith", 42, List(Cat("Oliver"), Dog("Wilson")))
+      val data = Map(
+        "firstName" -> "Bill",
+        "lastName" -> "Smith",
+        "age" -> "42",
+        "pets[0].type" -> "Cat",
+        "pets[0].value.name" -> "Oliver",
+        "pets[1].type" -> "Dog",
+        "pets[1].value.name" -> "Wilson"
+      )
 
-      val formWithPets =
-        newForm[Person].bind(
-          Map(
-            "firstName" -> "Bill",
-            "lastName" -> "Smith",
-            "age" -> "42",
-            "pets[0].type" -> "Cat",
-            "pets[0].value.name" -> "Oliver",
-            "pets[1].type" -> "Dog",
-            "pets[1].value.name" -> "Wilson"
-          )
-        )
-      formWithPets.errors mustBe empty
-      formWithPets.value mustBe Some(Person("Bill", "Smith", 42, List(Cat("Oliver"), Dog("Wilson"))))
+      val form = newForm[Person].bind(data)
+      form.errors mustBe empty
+      form.value mustBe Some(value)
+      form.fill(value).data mustBe data
     }
   }
 }
