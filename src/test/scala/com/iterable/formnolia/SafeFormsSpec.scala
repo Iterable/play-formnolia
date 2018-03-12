@@ -42,6 +42,19 @@ class SafeFormsSpec extends WordSpec with MustMatchers {
 
       personForm.fill(person).data mustBe personData
     }
+    "generate a mapping with default values" in {
+      case class Person(firstName: String, lastName: String, age: Int = 0)
+
+      val person = Person("Bill", "Smith")
+      val personData = Map("firstName" -> "Bill", "lastName" -> "Smith")
+      val filledPersonData = Map("firstName" -> "Bill", "lastName" -> "Smith", "age" -> "0")
+
+      val personForm = newForm[Person].bind(personData)
+      personForm.errors mustBe empty
+      personForm.value mustBe Some(person)
+
+      personForm.fill(person).data mustBe filledPersonData
+    }
     "generate a mapping for a case class using refined types" in {
       case class Person(
         firstName: String Refined NonEmpty,

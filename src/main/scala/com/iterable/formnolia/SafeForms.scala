@@ -54,7 +54,10 @@ private[formnolia] case class CaseClassMapping[T](
   override def bind(data: Map[String, String]): Either[Seq[FormError], T] = {
     val boundParams = ctx.parameters.map { param =>
       val paramMapping = param.typeclass.withPrefix(labelKey(param.label))
-      paramMapping.bind(data)
+      param.default match {
+        case None => paramMapping.bind(data)
+        case Some(default) => OptionalMapping(paramMapping).bind(data).right.map(_.getOrElse(default))
+      }
     }
     merge(boundParams: _*).right.map(ctx.rawConstruct).right.flatMap(applyConstraints)
   }
