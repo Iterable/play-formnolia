@@ -34,7 +34,7 @@ object SafeForms {
 
   implicit def optionMapping[T](implicit mapping: Mapping[T]): Mapping[Option[T]] = OptionalMapping(mapping)
 
-  implicit def gen[T]: Mapping[T] = macro Magnolia.gen[T]
+  implicit def genMapping[T]: Mapping[T] = macro Magnolia.gen[T]
 
   private[formnolia] def combine[T](ctx: CaseClass[Mapping, T]): Mapping[T] = new CaseClassMapping[T](ctx)
 

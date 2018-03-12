@@ -54,43 +54,46 @@ class SafeFormsSpec extends WordSpec with MustMatchers {
       )
     }
     "generate a mapping with a sealed trait" in {
-      sealed trait Pet {
-        def name: String
-      }
-      case class Dog(name: String) extends Pet
-      case class Cat(name: String) extends Pet
-      case class Parrot(name: String) extends Pet
-      case class Hamster(name: String) extends Pet
+      sealed trait Role
+      case object User extends Role
+      case object Admin extends Role
 
-      case class Person(firstName: String, lastName: String, age: Int, pet: Option[Pet] = None)
+      case class Person(firstName: String, lastName: String, age: Int, role: Option[Role] = None)
+
+      // Workaround for compilation issue on Scala 2.11, similar to https://github.com/circe/circe/issues/639
+      implicit val roleMapping = genMapping[Role]
+      assert(roleMapping != null)
 
       val formWithNone =
-        newForm[Person].bind(Map("firstName" -> "Bill", "lastName" -> "Smith", "age" -> "32"))
+        newForm[Person].bind(Map("firstName" -> "Bobby", "lastName" -> "Tables", "age" -> "17"))
       formWithNone.errors mustBe empty
-      formWithNone.value mustBe Some(Person("Bill", "Smith", 32))
+      formWithNone.value mustBe Some(Person("Bobby", "Tables", 17))
 
-      val formWithSomeCat =
+      val formWithUser =
+        newForm[Person].bind(Map("firstName" -> "Bill", "lastName" -> "Smith", "age" -> "42", "role.type" -> "User"))
+      formWithUser.errors mustBe empty
+      formWithUser.value mustBe Some(Person("Bill", "Smith", 42, Some(User)))
+
+      val formWithAdmin =
         newForm[Person].bind(
-          Map(
-            "firstName" -> "Bill",
-            "lastName" -> "Smith",
-            "age" -> "42",
-            "pet.type" -> "Cat",
-            "pet.value.name" -> "Oliver"
-          )
+          Map("firstName" -> "Alice", "lastName" -> "Rodriguez", "age" -> "39", "role.type" -> "Admin")
         )
-      formWithSomeCat.errors mustBe empty
-      formWithSomeCat.value mustBe Some(Person("Bill", "Smith", 42, Some(Cat("Oliver"))))
+      formWithAdmin.errors mustBe empty
+      formWithAdmin.value mustBe Some(Person("Alice", "Rodriguez", 39, Some(Admin)))
     }
 
     "generate a mapping with a list" in {
       sealed trait Pet {
         def name: String
       }
+
       case class Dog(name: String) extends Pet
       case class Cat(name: String) extends Pet
       case class Parrot(name: String) extends Pet
       case class Hamster(name: String) extends Pet
+
+      implicit val petMapping = genMapping[Pet]
+      assert(petMapping != null)
 
       case class Person(firstName: String, lastName: String, age: Int, pets: List[Pet] = List.empty)
 
