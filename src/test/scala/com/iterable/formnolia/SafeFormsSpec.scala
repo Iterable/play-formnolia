@@ -22,6 +22,8 @@ import eu.timepit.refined.api._
 import eu.timepit.refined.collection._
 import eu.timepit.refined.numeric._
 import play.api.data.FormError
+import play.api.libs.json.Json
+import play.api.test.FakeRequest
 import SafeForms._
 
 // these imports are required but may show as unused
@@ -140,6 +142,38 @@ class SafeFormsSpec extends WordSpec with MustMatchers {
       form.errors mustBe empty
       form.value mustBe Some(value)
       form.fill(value).data mustBe data
+    }
+
+    "bind a complex form from a request with a JSON body" in {
+      sealed trait Role
+      case object User extends Role
+      case object Admin extends Role
+
+      case class Person(firstName: String, lastName: String, age: Int, role: Option[Role] = None)
+
+      // Workaround for compilation issue on Scala 2.11, similar to https://github.com/circe/circe/issues/639
+      implicit val roleMapping = genMapping[Role]
+      assert(roleMapping != null)
+
+      {
+        val person = Person("Bobby", "Tables", 17, Some(User))
+        implicit val request = FakeRequest("GET", "/foo").withBody(
+          Json.obj("firstName" -> "Bobby", "lastName" -> "Tables", "age" -> 17, "role" -> Json.obj("type" -> "User"))
+        )
+        val form = newForm[Person].bindFromRequest()
+        form.errors mustBe empty
+        form.value mustBe Some(person)
+      }
+
+      {
+        val person = Person("Robert", "Chairs", 42, Some(Admin))
+        implicit val request = FakeRequest("GET", "/foo").withBody(
+          Json.obj("firstName" -> "Robert", "lastName" -> "Chairs", "age" -> 42, "role.type" -> "Admin")
+        )
+        val form = newForm[Person].bindFromRequest()
+        form.errors mustBe empty
+        form.value mustBe Some(person)
+      }
     }
   }
 }
