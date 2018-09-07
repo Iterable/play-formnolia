@@ -1,5 +1,7 @@
 # play-formnolia
 
+[![Travis CI](https://travis-ci.org/Iterable/play-formnolia.svg?branch=master)](https://travis-ci.org/Iterable/play-formnolia) [![Maven](https://img.shields.io/maven-central/v/com.iterable/play-formnolia_2.12.svg)](https://mvnrepository.com/artifact/com.iterable/play-formnolia_2.12)
+
 A project to automatically generate and validate Play forms using [Magnolia](https://magnolia.work/).
 
 ## Example
